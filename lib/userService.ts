@@ -81,57 +81,87 @@ export const userService = {
   /**
    * Complete user onboarding with communities and technologies
    */
-  async completeOnboarding(
-    userId: string, 
-    communityIds: number[], 
-    technologyIds: number[]
-  ): Promise<void> {
-    try {
-      // Add user to selected communities
-      if (communityIds.length > 0) {
-        const communityMemberships = communityIds.map(communityId => ({
-          user_id: userId,
-          community_id: communityId,
-          status: 'approved'
-        }));
+// In userService.ts - update the completeOnboarding function
+async completeOnboarding(
+  userId: string, 
+  communityIds: number[], 
+  technologyIds: number[]
+): Promise<void> {
+  try {
+    console.log('🚀 Starting onboarding completion...');
+    console.log('📋 User ID:', userId);
+    console.log('🏘️ Communities:', communityIds);
+    console.log('💻 Technologies:', technologyIds);
 
-        const { error: communitiesError } = await supabase
-          .from('community_members')
-          .insert(communityMemberships);
+    // Add user to selected communities
+    if (communityIds.length > 0) {
+      console.log('📝 Creating community memberships...');
+      const communityMemberships = communityIds.map(communityId => ({
+        user_id: userId,
+        community_id: communityId,
+        status: 'approved'
+      }));
 
-        if (communitiesError) throw communitiesError;
+      const { error: communitiesError, data: communitiesData } = await supabase
+        .from('community_members')
+        .insert(communityMemberships)
+        .select();
+
+      if (communitiesError) {
+        console.error('❌ Community members error:', communitiesError);
+        throw communitiesError;
       }
-
-      // Add user technologies
-      if (technologyIds.length > 0) {
-        const userTechnologies = technologyIds.map(techId => ({
-          user_id: userId,
-          tech_id: techId
-        }));
-
-        const { error: techError } = await supabase
-          .from('user_technologies')
-          .insert(userTechnologies);
-
-        if (techError) throw techError;
-      }
-
-      // Mark user as onboarded
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({
-          onboarded: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId);
-
-      if (updateError) throw updateError;
-
-    } catch (error) {
-      console.error('Error completing onboarding:', error);
-      throw error;
+      console.log('✅ Community memberships created:', communitiesData);
     }
-  },
+
+    // Add user technologies
+    if (technologyIds.length > 0) {
+      console.log('💾 Inserting into user_technologies...');
+      const userTechnologies = technologyIds.map(techId => ({
+        user_id: userId,
+        tech_id: techId
+      }));
+
+      console.log('📦 User technologies to insert:', userTechnologies);
+
+      const { error: techError, data: techData } = await supabase
+        .from('user_technologies')
+        .insert(userTechnologies)
+        .select();
+
+      if (techError) {
+        console.error('❌ User technologies error:', techError);
+        throw techError;
+      }
+      console.log('✅ User technologies inserted:', techData);
+    } else {
+      console.log('⚠️ No technologies selected for insertion');
+    }
+
+    // Mark user as onboarded
+    console.log('🎯 Marking user as onboarded...');
+    const { error: updateError, data: updateData } = await supabase
+      .from('users')
+      .update({
+        onboarded: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+      .select();
+
+    if (updateError) {
+      console.error('❌ User update error:', updateError);
+      throw updateError;
+    }
+    console.log('✅ User marked as onboarded:', updateData);
+
+    console.log('🎉 Onboarding completed successfully!');
+
+  } catch (error) {
+    console.error('❌ Error in completeOnboarding:', error);
+    throw error;
+  }
+},
 
   /**
    * Get user profile for main app
